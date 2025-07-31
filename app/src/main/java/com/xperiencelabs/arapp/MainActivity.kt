@@ -1,89 +1,73 @@
 package com.xperiencelabs.arapp
 
-import android.content.Context
-import android.graphics.BitmapFactory
-import android.media.MediaPlayer
-import android.net.Uri
-import android.opengl.Visibility
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.core.content.ContentProviderCompat.requireContext
-import androidx.core.view.isGone
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
+import androidx.appcompat.app.AppCompatActivity
 import com.google.ar.core.Config
 import io.github.sceneview.ar.ArSceneView
 import io.github.sceneview.ar.node.ArModelNode
-import io.github.sceneview.ar.node.AugmentedImageNode
 import io.github.sceneview.ar.node.PlacementMode
-import io.github.sceneview.material.setExternalTexture
 import io.github.sceneview.math.Position
-import io.github.sceneview.math.Rotation
-import io.github.sceneview.node.VideoNode
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var sceneView: ArSceneView
-    lateinit var placeButton: ExtendedFloatingActionButton
     private lateinit var modelNode: ArModelNode
-    private lateinit var videoNode: VideoNode
-    private lateinit var mediaPlayer:MediaPlayer
+    private lateinit var modelSpinner: Spinner
 
+    private val modelMap = mapOf(
+        "3D Cube" to "rubiks_cube.glb",
+        "cone" to "cone.glb",
+        "car" to "car.glb",
+        "apple" to "apple.glb"
+    )
+
+    private var selectedModel = "rubiks_cube.glb"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        sceneView = findViewById<ArSceneView?>(R.id.sceneView).apply {
+        sceneView = findViewById<ArSceneView>(R.id.sceneView).apply {
             this.lightEstimationMode = Config.LightEstimationMode.DISABLED
         }
 
-        mediaPlayer = MediaPlayer.create(this,R.raw.ad)
+        modelSpinner = findViewById(R.id.modelSpinner)
 
-        placeButton = findViewById(R.id.place)
+        // Spinner adapter
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, modelMap.keys.toList())
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        modelSpinner.adapter = adapter
 
-        placeButton.setOnClickListener {
-            placeModel()
+        modelSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                val selectedName = parent.getItemAtPosition(position).toString()
+                selectedModel = modelMap[selectedName] ?: "rubiks_cube.glb"
+                placeModel()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        videoNode = VideoNode(sceneView.engine, scaleToUnits = 0.7f, centerOrigin = Position(y=-4f), glbFileLocation = "models/plane.glb", player = mediaPlayer, onLoaded = {_,_ ->
-            mediaPlayer.start()
-        })
-
-        modelNode = ArModelNode(sceneView.engine,PlacementMode.INSTANT).apply {
-            loadModelGlbAsync(
-                glbFileLocation = "models/sofa.glb",
-                scaleToUnits = 1f,
-                centerOrigin = Position(-0.5f)
-
-            )
-            {
-                sceneView.planeRenderer.isVisible = true
-                val materialInstance = it.materialInstances[0]
-            }
+        modelNode = ArModelNode(sceneView.engine, PlacementMode.INSTANT).apply {
             onAnchorChanged = {
-                placeButton.isGone = it != null
+                // Optional: Logic when anchored
             }
-
         }
         sceneView.addChild(modelNode)
-        modelNode.addChild(videoNode)
-
     }
 
-   private fun placeModel(){
-       modelNode.anchor()
-
-       sceneView.planeRenderer.isVisible = false
-
-   }
-
-    override fun onPause() {
-        super.onPause()
-        mediaPlayer.stop()
+    private fun placeModel() {
+        modelNode.loadModelGlbAsync(
+            glbFileLocation = "models/$selectedModel",
+            scaleToUnits = 1f,
+            centerOrigin = Position(-0.5f)
+        ) {
+            modelNode.anchor()
+            sceneView.planeRenderer.isVisible = false
+        }
     }
-    override fun onDestroy() {
-        super.onDestroy()
-        mediaPlayer.release()
-    }
-
 }
