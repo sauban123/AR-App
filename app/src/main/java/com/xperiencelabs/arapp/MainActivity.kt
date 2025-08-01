@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.ar.core.Config
 import io.github.sceneview.ar.ArSceneView
@@ -60,14 +61,51 @@ class MainActivity : AppCompatActivity() {
         sceneView.addChild(modelNode)
     }
 
+
+//    private fun placeModel() {
+//        modelNode.loadModelGlbAsync(
+//            glbFileLocation = "models/$selectedModel",
+//            scaleToUnits = 0.4f,
+//            centerOrigin = Position(-0.5f)
+//        ) {
+//            modelNode.anchor()
+//            sceneView.planeRenderer.isVisible = false
+//        }
+//    }
+//private fun placeModel() {
+//    modelNode = ArModelNode(sceneView.engine, PlacementMode.INSTANT).apply {
+//        loadModelGlbAsync(
+//            glbFileLocation = "models/$selectedModel",
+//            scaleToUnits = 0.3f,
+//        ) {
+//            transform.position = Position(0f, 0f, -0.5f) // Place 0.5m in front
+//            anchor()
+//            sceneView.planeRenderer.isVisible = false
+//        }
+//    }
+//
+//    sceneView.addChild(modelNode)
+//}
+
     private fun placeModel() {
-        modelNode.loadModelGlbAsync(
-            glbFileLocation = "models/$selectedModel",
-            scaleToUnits = 1f,
-            centerOrigin = Position(-0.5f)
-        ) {
-            modelNode.anchor()
-            sceneView.planeRenderer.isVisible = false
+        modelNode = ArModelNode(sceneView.engine, PlacementMode.INSTANT).apply {
+            loadModelGlbAsync(
+                glbFileLocation = "models/$selectedModel",
+                scaleToUnits = 0.4f
+            ) {
+                // Place the model 0.5 meters in front of the camera
+                val cameraPosition = sceneView.cameraNode.transform.position
+                val forward = sceneView.cameraNode.transform.forward
+
+                // Position = camera + (forward direction * distance)
+                val targetPosition = cameraPosition + forward * 0.5f
+                transform.position = targetPosition
+
+                anchor() // Anchor the model to this position
+                sceneView.planeRenderer.isVisible = false
+            }
         }
+        sceneView.addChild(modelNode)
     }
+
 }
